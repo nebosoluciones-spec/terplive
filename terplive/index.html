@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TerpLive</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23e8533a'/><text y='.9em' font-size='72' x='12'>🎙</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f0ede8;--surface:#faf9f7;--surface2:#f2f0ec;--border:#e0dbd3;
+    --text:#1a1815;--text-muted:#8a857d;
+    --accent:#e8533a;--accent2:#3a7be8;--accent2-light:#eaf0fd;
+    --green:#2d8a4e;--green-light:#e6f4ec;
+    --purple:#e8533a;--purple-light:#fdecea;
+    --shadow:0 2px 12px rgba(0,0,0,.07);--shadow-lg:0 8px 32px rgba(0,0,0,.13);
+    --radius:16px;--radius-sm:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+  /* ── HEADER ── */
+  header{display:flex;align-items:center;justify-content:space-between;padding:11px 22px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;gap:14px;}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:600;font-size:15px;letter-spacing:-.3px;flex-shrink:0;}
+  .logo-icon{width:30px;height:30px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;}
+
+  /* UI lang toggle */
+  .ui-lang-toggle{display:flex;align-items:center;gap:0;background:var(--surface2);border:1px solid var(--border);border-radius:40px;padding:3px;flex-shrink:0;}
+  .ui-lang-btn{padding:4px 12px;border-radius:40px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--text-muted);cursor:pointer;transition:all .15s;}
+  .ui-lang-btn.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow);}
+
+  /* Trial badge */
+  .trial-badge{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:40px;background:var(--green-light);border:1px solid var(--green);font-size:12px;font-weight:600;color:var(--green);flex-shrink:0;cursor:default;}
+  .trial-badge.warning{background:#fff8e6;border-color:#e6a817;color:#b07d10;}
+  .trial-badge.expired{background:#fdecea;border-color:var(--accent);color:var(--accent);}
+  .trial-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.4s infinite;}
+  .trial-badge.warning .trial-dot{background:#e6a817;}
+  .trial-badge.expired .trial-dot{background:var(--accent);animation:none;}
+
+  /* Source lang selector */
+  .lang-selector{display:flex;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden;flex-shrink:0;}
+  .lang-selector-side{display:flex;align-items:center;gap:4px;padding:6px 11px;cursor:pointer;transition:all .15s;}
+  .lang-selector-side:hover{background:rgba(0,0,0,.04);}
+  .lang-selector-side.active{background:transparent;}
+  #srcAutoBtn.active span{color:var(--accent2);font-weight:600;}
+  #srcLangBtn.active span{color:var(--text);font-weight:600;}
+  .lang-selector-side span{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;}
+  .lang-selector-side small{font-size:11px;color:var(--text-muted);}
+  .lang-divider-v{width:1px;height:20px;background:var(--border);flex-shrink:0;}
+
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:background .3s;flex-shrink:0;}
+  .status-dot.listening{background:var(--accent);box-shadow:0 0 0 3px rgba(232,83,58,.2);animation:pulse 1.4s infinite;}
+  .status-dot.ready{background:var(--green);}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(232,83,58,.2);}50%{box-shadow:0 0 0 6px rgba(232,83,58,.08);}}
+
+  .detected-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:2px 8px;border-radius:20px;background:var(--accent2-light);color:var(--accent2);opacity:0;transition:opacity .3s;}
+  .detected-badge.visible{opacity:1;}
+
+  /* ── LANG DROPDOWN ── */
+  .lang-dropdown{position:fixed;z-index:500;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-lg);width:280px;max-height:360px;display:none;flex-direction:column;overflow:hidden;}
+  .lang-dropdown.open{display:flex;}
+  .lang-dropdown-search{padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .lang-dropdown-search input{width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--surface2);outline:none;}
+  .lang-dropdown-search input:focus{border-color:var(--accent2);}
+  .lang-dropdown-list{overflow-y:auto;flex:1;}
+  .lang-dropdown-item{padding:9px 16px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .12s;}
+  .lang-dropdown-item:hover{background:var(--surface2);}
+  .lang-dropdown-item.selected{background:var(--accent2-light);color:var(--accent2);font-weight:600;}
+  .lang-dropdown-item .flag{font-size:16px;width:22px;text-align:center;}
+  .lang-auto-item{border-bottom:1px solid var(--border);font-weight:500;color:var(--accent2);}
+
+  /* ── MAIN ── */
+  main{display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden;}
+  .panel{display:flex;flex-direction:column;overflow:hidden;background:var(--surface);}
+  .panel:first-child{border-right:1px solid var(--border);}
+  .panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0;gap:10px;}
+  .panel-title{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text-muted);}
+  .panel-actions{display:flex;align-items:center;gap:6px;}
+
+  /* ── CAPTIONS ── */
+  .captions-area{flex:1;overflow-y:auto;padding:24px 24px 16px;scroll-behavior:smooth;line-height:1.6;}
+  .caption-text{font-size:17px;font-weight:400;color:var(--text);}
+  .caption-text.interim{color:var(--text-muted);font-style:italic;}
+  .placeholder{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--text-muted);text-align:center;}
+  .placeholder-icon{font-size:36px;opacity:.3;}
+  .placeholder p{font-size:14px;max-width:220px;line-height:1.5;}
+
+  /* ── CONTROLS ── */
+  .controls{padding:14px 20px 18px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:12px;flex-shrink:0;}
+  .btn-record{width:52px;height:52px;border-radius:50%;border:none;background:var(--accent);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 14px rgba(232,83,58,.35);}
+  .btn-record:hover{transform:scale(1.05);}
+  .btn-record.recording{background:#1a1815;box-shadow:0 4px 14px rgba(0,0,0,.2);}
+  .btn-icon{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+  .btn-icon:hover{border-color:var(--text-muted);color:var(--text);}
+  .auto-detect-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);cursor:pointer;user-select:none;padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);transition:all .15s;}
+  .auto-detect-toggle.on{border-color:var(--green);color:var(--green);background:var(--green-light);}
+
+  /* ── TRANSLATOR ── */
+  .translator-panel{display:flex;flex-direction:column;overflow:hidden;}
+  .trans-lang-bar{display:flex;align-items:stretch;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface);}
+  .trans-lang-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 8px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+  .trans-lang-tab:hover{color:var(--text);background:var(--surface2);}
+  .trans-lang-tab.active{color:var(--accent2);border-bottom-color:var(--accent2);font-weight:600;}
+  .trans-swap-btn{width:44px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;cursor:pointer;color:var(--text-muted);font-size:17px;border-left:1px solid var(--border);border-right:1px solid var(--border);transition:all .18s;flex-shrink:0;}
+  .trans-swap-btn:hover{color:var(--accent2);background:var(--accent2-light);}
+  .translator-body{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+  .half{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+  .half:first-child{border-bottom:1px solid var(--border);}
+  .half-label{position:absolute;top:10px;left:14px;font-size:10px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);pointer-events:none;z-index:1;}
+  .trans-textarea{flex:1;width:100%;border:none;outline:none;background:transparent;resize:none;font-family:'DM Sans',sans-serif;font-size:16px;color:var(--text);padding:32px 16px 10px;line-height:1.6;}
+  .trans-textarea::placeholder{color:var(--text-muted);}
+  .trans-output{flex:1;overflow-y:auto;padding:32px 16px 10px;font-size:16px;line-height:1.6;color:var(--text);background:var(--surface2);}
+  .trans-output.loading{color:var(--text-muted);font-style:italic;}
+  .trans-output:empty::before{content:attr(data-placeholder);color:var(--text-muted);}
+  .trans-actions{display:flex;align-items:center;justify-content:flex-end;padding:4px 12px 6px;gap:4px;flex-shrink:0;}
+  .trans-action-btn{width:28px;height:28px;border:none;background:transparent;color:var(--text-muted);font-size:14px;cursor:pointer;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;transition:all .14s;}
+  .trans-action-btn:hover{background:var(--surface2);color:var(--text);}
+  .char-count{font-size:11px;color:var(--text-muted);font-family:'DM Mono',monospace;padding:0 16px 4px;text-align:right;flex-shrink:0;}
+
+  /* ── GLOSSARY FLOATING ── */
+  .glossary-fab{position:fixed;bottom:24px;right:24px;width:48px;height:48px;border-radius:50%;border:none;background:var(--purple);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(124,63,232,.4);transition:transform .15s,box-shadow .15s;z-index:200;}
+  .glossary-fab:hover{transform:scale(1.08);}
+  .glossary-panel{position:fixed;bottom:84px;right:24px;width:370px;max-height:560px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;z-index:199;transform:scale(.92) translateY(12px);opacity:0;pointer-events:none;transform-origin:bottom right;transition:transform .22s cubic-bezier(.4,0,.2,1),opacity .22s;}
+  .glossary-panel.open{transform:scale(1) translateY(0);opacity:1;pointer-events:all;}
+  .glossary-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px 11px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .glossary-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;}
+  .glossary-title-icon{width:24px;height:24px;border-radius:6px;background:var(--purple-light);color:var(--purple);display:flex;align-items:center;justify-content:center;font-size:13px;}
+  .gloss-search-wrap{padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative;}
+  .gloss-search-inner{display:flex;align-items:center;gap:8px;}
+  .glossary-search{flex:1;border:1px solid var(--border);outline:none;background:var(--surface2);border-radius:var(--radius-sm);padding:9px 14px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);transition:border-color .15s;}
+  .glossary-search:focus{border-color:var(--purple);}
+  .glossary-search::placeholder{color:var(--text-muted);}
+  .glossary-search-btn{width:36px;height:36px;border-radius:var(--radius-sm);border:none;background:var(--purple);color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;}
+  .glossary-search-btn:hover{background:#6830cc;}
+  .gloss-suggestions{position:absolute;left:14px;right:14px;top:calc(100% - 10px);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);z-index:600;display:none;overflow:hidden;}
+  .gloss-suggestions.open{display:block;}
+  .gloss-suggestion-item{padding:9px 14px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .12s;}
+  .gloss-suggestion-item:hover{background:var(--surface2);}
+  .gloss-suggestion-item .sugg-icon{color:var(--text-muted);font-size:12px;}
+  .gloss-did-you-mean{padding:8px 14px;font-size:12px;color:var(--text-muted);background:var(--surface2);border-bottom:1px solid var(--border);}
+  .gloss-did-you-mean span{color:var(--purple);cursor:pointer;font-weight:500;text-decoration:underline;}
+  .glossary-result{flex:1;overflow-y:auto;padding:14px 16px;}
+  .gloss-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--text-muted);text-align:center;}
+  .gloss-placeholder-icon{font-size:30px;opacity:.25;}
+  .gloss-placeholder p{font-size:13px;max-width:200px;line-height:1.5;}
+  .gloss-loading{color:var(--text-muted);font-size:13px;font-style:italic;}
+  .gloss-term{font-size:18px;font-weight:600;color:var(--text);margin-bottom:3px;}
+  .gloss-phonetic{font-size:12px;color:var(--text-muted);font-family:'DM Mono',monospace;margin-bottom:11px;}
+  .gloss-block{margin-bottom:13px;}
+  .gloss-pos{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;background:var(--purple-light);color:var(--purple);padding:2px 8px;border-radius:20px;margin-bottom:6px;}
+  .gloss-definition{font-size:13px;line-height:1.6;color:var(--text);margin-bottom:4px;}
+  .gloss-example{font-size:12px;color:var(--text-muted);font-style:italic;line-height:1.5;padding-left:10px;border-left:2px solid var(--border);margin-bottom:4px;}
+  .gloss-divider{border:none;border-top:1px solid var(--border);margin:11px 0;}
+  .gloss-translation-box{background:var(--purple-light);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:8px;}
+  .gloss-translation-label{font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--purple);margin-bottom:4px;}
+  .gloss-translation-text{font-size:15px;font-weight:500;color:var(--text);}
+  .gloss-error{font-size:13px;color:var(--accent);line-height:1.5;}
+  .gloss-section-label{font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;}
+
+  /* ── PAYWALL MODAL ── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(26,24,21,.6);backdrop-filter:blur(6px);z-index:900;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;}
+  .modal-overlay.open{opacity:1;pointer-events:all;}
+  .modal{background:var(--surface);border-radius:24px;box-shadow:0 24px 64px rgba(0,0,0,.2);width:min(520px,92vw);overflow:hidden;transform:translateY(20px) scale(.97);transition:transform .3s cubic-bezier(.4,0,.2,1);}
+  .modal-overlay.open .modal{transform:translateY(0) scale(1);}
+  .modal-hero{background:linear-gradient(135deg,#c93a24 0%,#e8533a 60%,#d4472e 100%);padding:36px 36px 28px;text-align:center;position:relative;overflow:hidden;}
+  .modal-hero::before{content:'🎙';font-size:80px;position:absolute;top:-10px;right:-10px;opacity:.08;}
+  .modal-hero h2{font-size:24px;font-weight:600;color:#fff;margin-bottom:8px;position:relative;}
+  .modal-hero p{font-size:14px;color:rgba(255,255,255,.65);position:relative;line-height:1.6;}
+  .modal-body{padding:28px 32px 32px;}
+  .modal-plans{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+  .plan-card{border:2px solid var(--border);border-radius:16px;padding:20px 16px;cursor:pointer;transition:all .18s;position:relative;text-align:center;}
+  .plan-card:hover{border-color:var(--purple);background:var(--purple-light);}
+  .plan-card.featured{border-color:var(--purple);background:var(--purple-light);}
+  .plan-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--purple);color:#fff;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:3px 10px;border-radius:20px;white-space:nowrap;}
+  .plan-name{font-size:13px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+  .plan-price{font-size:28px;font-weight:700;color:var(--text);margin-bottom:4px;}
+  .plan-price small{font-size:13px;font-weight:400;color:var(--text-muted);}
+  .plan-desc{font-size:12px;color:var(--text-muted);line-height:1.5;}
+  .modal-features{display:flex;flex-direction:column;gap:8px;margin-bottom:24px;}
+  .modal-feature{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text);}
+  .modal-feature-icon{color:var(--green);font-size:15px;flex-shrink:0;}
+  .modal-cta{width:100%;padding:14px;border-radius:var(--radius-sm);border:none;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;}
+  .modal-cta.primary{background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(232,83,58,.35);}
+  .modal-cta.primary:hover{background:#c93a24;box-shadow:0 6px 22px rgba(232,83,58,.45);}
+  .modal-cta.secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+  .modal-cta.secondary:hover{border-color:var(--text-muted);}
+  .modal-unlock{margin-top:16px;display:flex;align-items:center;gap:8px;}
+  .modal-unlock input{flex:1;border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 14px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--surface2);outline:none;transition:border-color .15s;}
+  .modal-unlock input:focus{border-color:var(--purple);}
+  .modal-unlock button{padding:9px 16px;border-radius:var(--radius-sm);border:none;background:var(--purple);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .modal-unlock-label{font-size:11px;color:var(--text-muted);text-align:center;margin-top:8px;}
+
+  /* ── TOAST ── */
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--text);color:#fff;padding:10px 20px;border-radius:40px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;pointer-events:none;z-index:1000;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:transparent;} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo"><div class="logo-icon">🎙</div><span id="appName">TerpLive</span></div>
+
+  <div style="display:flex;align-items:center;gap:10px;flex:1;justify-content:center;">
+    <div class="lang-selector" id="srcSelector">
+      <div class="lang-selector-side active" id="srcAutoBtn" onclick="setSrcMode('auto')">
+        <small>🔍</small><span data-i18n="autoDetect">Auto-detect</span>
+      </div>
+      <div class="lang-divider-v"></div>
+      <div class="lang-selector-side" id="srcLangBtn" onclick="openDropdown('src')">
+        <span id="srcLangLabel">Español</span>
+        <small>▾</small>
+      </div>
+    </div>
+    <span class="detected-badge" id="detectedBadge">🔍 auto</span>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+    <div class="trial-badge" id="trialBadge">
+      <div class="trial-dot"></div>
+      <span id="trialLabel">3:00:00</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div class="status-dot" id="statusDot"></div>
+      <span style="font-size:12px;color:var(--text-muted)" id="statusText">Ready</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- LEFT: CAPTIONER -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title" data-i18n="liveCaption">Live Captions</span>
+      <div class="panel-actions">
+        <button class="btn-icon" onclick="copyAllCaptions()" id="btnCopy" title="Copiar subtítulos">📋</button>
+        <button class="btn-icon" onclick="sendCaptionsToTranslator()" title="Enviar al traductor" style="font-size:17px;font-weight:700;">→</button>
+        <button class="btn-icon" onclick="clearCaptions()" title="Limpiar">🗑</button>
+      </div>
+    </div>
+    <div class="captions-area" id="captionsArea">
+      <div class="placeholder" id="placeholder">
+        <div class="placeholder-icon">🎤</div>
+        <p id="placeholderText">Press the microphone to start transcribing</p>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="auto-detect-toggle on" id="autoDetectToggle" onclick="toggleAutoDetect()">
+        <span>🔍</span><span id="autoDetectLabel">Auto-detect</span>
+      </div>
+      <button class="btn-record" id="recordBtn" onclick="toggleRecording()">🎤</button>
+    </div>
+  </div>
+
+  <!-- RIGHT: TRANSLATOR -->
+  <div class="panel translator-panel">
+    <div class="panel-header">
+      <span class="panel-title" data-i18n="translator">Translator</span>
+      <span style="font-size:11px;color:var(--text-muted)" data-i18n="autoTranslation">Automatic translation</span>
+    </div>
+    <div class="trans-lang-bar">
+      <button class="trans-lang-tab active" id="transFromTab" onclick="openDropdown('transFrom')">
+        <span id="transFromFlag">🇲🇽</span>
+        <span id="transFromLabel">Español</span>
+        <small style="color:var(--text-muted);font-size:11px;">▾</small>
+      </button>
+      <button class="trans-swap-btn" onclick="swapTranslatorLangs()">⇄</button>
+      <button class="trans-lang-tab" id="transToTab" onclick="openDropdown('transTo')">
+        <span id="transToFlag">🇺🇸</span>
+        <span id="transToLabel">English</span>
+        <small style="color:var(--text-muted);font-size:11px;">▾</small>
+      </button>
+    </div>
+    <div class="translator-body">
+      <div class="half">
+        <span class="half-label" id="inputLangLabel">Español</span>
+        <textarea class="trans-textarea" id="transInput" placeholder="Type here to translate…" oninput="onTransInput()"></textarea>
+        <div class="trans-actions">
+          <button class="trans-action-btn" onclick="clearTranslator()">✕</button>
+          <button class="trans-action-btn" onclick="copyInput()">📋</button>
+        </div>
+        <div class="char-count" id="charCount">0 / 5000</div>
+      </div>
+      <div class="half">
+        <span class="half-label" id="outputLangLabel">English</span>
+        <div class="trans-output" id="transOutput" data-placeholder="Translation will appear here..."></div>
+        <div class="trans-actions">
+          <button class="trans-action-btn" onclick="copyOutput()">📋</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- LANG DROPDOWN -->
+<div class="lang-dropdown" id="langDropdown">
+  <div class="lang-dropdown-search">
+    <input type="text" id="langDropdownSearch" placeholder="Search language…" oninput="filterDropdown(this.value)">
+  </div>
+  <div class="lang-dropdown-list" id="langDropdownList"></div>
+</div>
+
+<!-- GLOSSARY -->
+<div class="glossary-panel" id="glossaryPanel">
+  <div class="glossary-header">
+    <div class="glossary-title"><div class="glossary-title-icon">📖</div><span data-i18n="glossary">Glossary</span></div>
+    <button class="trans-action-btn" onclick="toggleGlossary()">✕</button>
+  </div>
+  <div class="gloss-search-wrap">
+    <div class="gloss-search-inner">
+      <input class="glossary-search" id="glossaryInput" type="text"
+        placeholder="Medical, legal, technical term…"
+        oninput="onGlossaryInput()"
+        onkeydown="onGlossaryKey(event)">
+      <button class="glossary-search-btn" onmousedown="closeGlossSuggestions()" onclick="lookupTerm()">🔍</button>
+    </div>
+    <div class="gloss-suggestions" id="glossSuggestions"></div>
+  </div>
+  <div class="glossary-result" id="glossaryResult">
+    <div class="gloss-placeholder">
+      <div class="gloss-placeholder-icon">🔬</div>
+      <p id="glossPlaceholderText">Type a term to see its definition and translations</p>
+    </div>
+  </div>
+</div>
+
+<button class="glossary-fab" onclick="toggleGlossary()" title="Glossary">📖</button>
+
+<!-- PAYWALL MODAL -->
+<div class="modal-overlay" id="paywallModal">
+  <div class="modal">
+    <div class="modal-hero">
+      <h2 id="modalTitle">Your free trial has ended</h2>
+      <p id="modalSubtitle">Continue using TerpLive with full access. No limits, no interruptions.</p>
+    </div>
+    <div class="modal-body">
+      <div class="modal-plans">
+        <div class="plan-card" id="planMonthly" onclick="selectPlan('monthly')">
+          <div class="plan-name" data-i18n="monthly">Monthly</div>
+          <div class="plan-price">$11<small>/mo</small></div>
+          <div class="plan-desc" id="planMonthlyDesc">Cancel anytime</div>
+        </div>
+        <div class="plan-card featured" id="planLifetime" onclick="selectPlan('lifetime')">
+          <div class="plan-badge" id="bestValueBadge">Best value</div>
+          <div class="plan-name" data-i18n="lifetime">Yearly</div>
+          <div class="plan-price">$59<small>/yr</small></div>
+          <div class="plan-desc" id="planLifetimeDesc">Save 58% vs monthly</div>
+        </div>
+      </div>
+      <div class="modal-features">
+        <div class="modal-feature"><span class="modal-feature-icon">✓</span><span data-i18n="f1">Unlimited live captions</span></div>
+        <div class="modal-feature"><span class="modal-feature-icon">✓</span><span data-i18n="f2">Automatic translator in all languages</span></div>
+        <div class="modal-feature"><span class="modal-feature-icon">✓</span><span data-i18n="f3">Medical, legal and technical glossary</span></div>
+        <div class="modal-feature"><span class="modal-feature-icon">✓</span><span data-i18n="f4">Works in any browser</span></div>
+      </div>
+      <button class="modal-cta primary" id="ctaBtn" onclick="goToPay()">
+        <span>🛒</span><span id="ctaText">Continue with Yearly — $59/yr</span>
+      </button>
+      <button class="modal-cta secondary" onclick="closePaywall()" id="trialExtendBtn">
+        <span id="trialExtendText">← Back</span>
+      </button>
+      <div class="modal-unlock">
+        <input type="text" id="licenseInput" placeholder="License code…">
+        <button onclick="activateLicense()" id="activateBtn">Activate</button>
+      </div>
+      <div class="modal-unlock-label" id="unlockLabel">Already purchased? Enter your license code.</div>
+    </div>
+  </div>
+</div>
+
+<footer style="flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);padding:7px 24px;display:flex;align-items:center;justify-content:center;">
+  <span style="font-size:11px;color:var(--text-muted);">© 2026 <strong style="color:var(--text);">Nebo Soluciones</strong>. All rights reserved.</span>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  GUMROAD LINKS — replace with your actual product URLs
+// ═══════════════════════════════════════════════════════
+const GUMROAD = {
+  monthly:  'https://gumroad.com/l/YOUR_MONTHLY_PRODUCT_ID',
+  lifetime: 'https://gumroad.com/l/YOUR_LIFETIME_PRODUCT_ID'
+};
+
+// ═══════════════════════════════════════════════════════
+//  LANGUAGES
+// ═══════════════════════════════════════════════════════
+const LANGUAGES=[
+  {code:'af',name:'Afrikaans',flag:'🇿🇦'},{code:'sq',name:'Albanian',flag:'🇦🇱'},
+  {code:'ar',name:'Arabic',flag:'🇸🇦'},{code:'hy',name:'Armenian',flag:'🇦🇲'},
+  {code:'az',name:'Azerbaijani',flag:'🇦🇿'},{code:'bn',name:'Bengali',flag:'🇧🇩'},
+  {code:'bs',name:'Bosnian',flag:'🇧🇦'},{code:'bg',name:'Bulgarian',flag:'🇧🇬'},
+  {code:'ca',name:'Catalan',flag:'🏴'},{code:'zh',name:'Chinese (Simplified)',flag:'🇨🇳'},
+  {code:'zh-TW',name:'Chinese (Traditional)',flag:'🇹🇼'},{code:'hr',name:'Croatian',flag:'🇭🇷'},
+  {code:'cs',name:'Czech',flag:'🇨🇿'},{code:'da',name:'Danish',flag:'🇩🇰'},
+  {code:'nl',name:'Dutch',flag:'🇳🇱'},{code:'en',name:'English',flag:'🇺🇸'},
+  {code:'et',name:'Estonian',flag:'🇪🇪'},{code:'fi',name:'Finnish',flag:'🇫🇮'},
+  {code:'fr',name:'French',flag:'🇫🇷'},{code:'gl',name:'Galician',flag:'🏴'},
+  {code:'ka',name:'Georgian',flag:'🇬🇪'},{code:'de',name:'German',flag:'🇩🇪'},
+  {code:'el',name:'Greek',flag:'🇬🇷'},{code:'gu',name:'Gujarati',flag:'🇮🇳'},
+  {code:'he',name:'Hebrew',flag:'🇮🇱'},{code:'hi',name:'Hindi',flag:'🇮🇳'},
+  {code:'hu',name:'Hungarian',flag:'🇭🇺'},{code:'is',name:'Icelandic',flag:'🇮🇸'},
+  {code:'id',name:'Indonesian',flag:'🇮🇩'},{code:'ga',name:'Irish',flag:'🇮🇪'},
+  {code:'it',name:'Italian',flag:'🇮🇹'},{code:'ja',name:'Japanese',flag:'🇯🇵'},
+  {code:'ko',name:'Korean',flag:'🇰🇷'},{code:'lv',name:'Latvian',flag:'🇱🇻'},
+  {code:'lt',name:'Lithuanian',flag:'🇱🇹'},{code:'ms',name:'Malay',flag:'🇲🇾'},
+  {code:'mt',name:'Maltese',flag:'🇲🇹'},{code:'mn',name:'Mongolian',flag:'🇲🇳'},
+  {code:'ne',name:'Nepali',flag:'🇳🇵'},{code:'no',name:'Norwegian',flag:'🇳🇴'},
+  {code:'fa',name:'Persian',flag:'🇮🇷'},{code:'pl',name:'Polish',flag:'🇵🇱'},
+  {code:'pt',name:'Portuguese',flag:'🇧🇷'},{code:'ro',name:'Romanian',flag:'🇷🇴'},
+  {code:'ru',name:'Russian',flag:'🇷🇺'},{code:'sr',name:'Serbian',flag:'🇷🇸'},
+  {code:'sk',name:'Slovak',flag:'🇸🇰'},{code:'sl',name:'Slovenian',flag:'🇸🇮'},
+  {code:'es',name:'Spanish',flag:'🇲🇽'},{code:'sw',name:'Swahili',flag:'🇰🇪'},
+  {code:'sv',name:'Swedish',flag:'🇸🇪'},{code:'tl',name:'Filipino',flag:'🇵🇭'},
+  {code:'ta',name:'Tamil',flag:'🇮🇳'},{code:'te',name:'Telugu',flag:'🇮🇳'},
+  {code:'th',name:'Thai',flag:'🇹🇭'},{code:'tr',name:'Turkish',flag:'🇹🇷'},
+  {code:'uk',name:'Ukrainian',flag:'🇺🇦'},{code:'ur',name:'Urdu',flag:'🇵🇰'},
+  {code:'vi',name:'Vietnamese',flag:'🇻🇳'},{code:'cy',name:'Welsh',flag:'🏴'},
+];
+function getLang(code){return LANGUAGES.find(l=>l.code===code)||{code,name:code,flag:'🌐'};}
+
+// ═══════════════════════════════════════════════════════
+//  i18n
+// ═══════════════════════════════════════════════════════
+const I18N={
+  es:{
+    autoDetect:'Auto-detect',liveCaption:'Subtítulos en vivo',translator:'Traductor',
+    autoTranslation:'Traducción automática',glossary:'Glosario',
+    placeholderText:'Presiona el micrófono para comenzar a transcribir',
+    glossPlaceholder:'Escribe un término para ver su definición y traducciones',
+    glossInputPlaceholder:'Término médico, legal, técnico…',
+    statusReady:'Listo',statusListening:'Escuchando…',statusStopped:'Detenido',
+    monthly:'Mensual',lifetime:'Anual',bestValue:'Mejor valor',
+    planMonthlyDesc:'Cancela cuando quieras',planLifetimeDesc:'Ahorra 58% vs mensual',
+    f1:'Subtítulos en vivo sin límite de tiempo',f2:'Traductor automático en todos los idiomas',
+    f3:'Glosario médico, legal y técnico',f4:'Funciona en cualquier navegador',
+    modalTitle:'Tu prueba gratuita ha terminado',
+    modalSubtitle:'Continúa usando TerpLive con acceso completo. Sin límites, sin interrupciones.',
+    ctaMonthly:'Continuar con plan Mensual — $11/mes',ctaLifetime:'Continuar con plan Anual — $59/año',
+    trialActive:'de prueba restante',trialWarning:'de prueba restante',trialExpired:'Prueba terminada',
+    unlockLabel:'¿Ya compraste? Ingresa tu código de licencia.',
+    activate:'Activar',licensePlaceholder:'Código de licencia…',
+    toastCopied:'✅ Subtítulos copiados',toastSent:'✅ Enviado al traductor',
+    toastNoCaption:'⚠️ No hay subtítulos aún',toastLicenseOk:'✅ Licencia activada. ¡Bienvenido!',
+    toastLicenseBad:'❌ Código inválido. Verifica e intenta de nuevo.',
+    translationsLabel:'Traducciones',definitionNotFound:'No se encontró definición detallada.',
+    didYouMean:'¿Quisiste decir:',searchLang:'Buscar idioma…',
+    backBtn:'← Volver',
+  },
+  en:{
+    autoDetect:'Auto-detect',liveCaption:'Live Captions',translator:'Translator',
+    autoTranslation:'Automatic translation',glossary:'Glossary',
+    placeholderText:'Press the microphone to start transcribing',
+    glossPlaceholder:'Type a term to see its definition and translations',
+    glossInputPlaceholder:'Medical, legal, technical term…',
+    statusReady:'Ready',statusListening:'Listening…',statusStopped:'Stopped',
+    monthly:'Monthly',lifetime:'Yearly',bestValue:'Best value',
+    planMonthlyDesc:'Cancel anytime',planLifetimeDesc:'Save 58% vs monthly',
+    f1:'Unlimited live captions',f2:'Automatic translator in all languages',
+    f3:'Medical, legal and technical glossary',f4:'Works in any browser',
+    modalTitle:'Your free trial has ended',
+    modalSubtitle:'Continue using TerpLive with full access. No limits, no interruptions.',
+    ctaMonthly:'Continue with Monthly — $11/mo',ctaLifetime:'Continue with Yearly — $59/yr',
+    trialActive:'trial remaining',trialWarning:'trial remaining',trialExpired:'Trial ended',
+    unlockLabel:'Already purchased? Enter your license code.',
+    activate:'Activate',licensePlaceholder:'License code…',
+    toastCopied:'✅ Captions copied',toastSent:'✅ Sent to translator',
+    toastNoCaption:'⚠️ No captions yet',toastLicenseOk:'✅ License activated. Welcome!',
+    toastLicenseBad:'❌ Invalid code. Please check and try again.',
+    translationsLabel:'Translations',definitionNotFound:'No detailed definition found.',
+    didYouMean:'Did you mean:',searchLang:'Search language…',
+    backBtn:'← Back',
+  }
+};
+let uiLang='en';
+function t(key){return I18N[uiLang][key]||key;}
+
+function setUILang(lang,btn){
+  uiLang=lang;
+  document.querySelectorAll('.ui-lang-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  applyI18n();
+}
+
+function applyI18n(){
+  const tr=I18N[uiLang];
+  // Static elements with data-i18n
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key=el.getAttribute('data-i18n');
+    if(tr[key]) el.textContent=tr[key];
+  });
+  // Dynamic text
+  document.getElementById('placeholderText').textContent=tr.placeholderText;
+  document.getElementById('glossPlaceholderText').textContent=tr.glossPlaceholder;
+  document.getElementById('glossaryInput').placeholder=tr.glossInputPlaceholder;
+  document.getElementById('langDropdownSearch').placeholder=tr.searchLang;
+  document.getElementById('modalTitle').textContent=tr.modalTitle;
+  document.getElementById('modalSubtitle').textContent=tr.modalSubtitle;
+  document.getElementById('planMonthlyDesc').textContent=tr.planMonthlyDesc;
+  document.getElementById('planLifetimeDesc').textContent=tr.planLifetimeDesc;
+  document.getElementById('bestValueBadge').textContent=tr.bestValue;
+  document.getElementById('unlockLabel').textContent=tr.unlockLabel;
+  document.getElementById('activateBtn').textContent=tr.activate;
+  document.getElementById('licenseInput').placeholder=tr.licensePlaceholder;
+  document.getElementById('statusText').textContent=isRecording?tr.statusListening:tr.statusReady;
+  updateCTAText();
+  updateTrialBadge();
+}
+
+// ═══════════════════════════════════════════════════════
+//  TRIAL & PAYWALL — hardened Level 1
+//  Multiple redundant stores + tamper detection
+// ═══════════════════════════════════════════════════════
+const TRIAL_DURATION = 3 * 60 * 60 * 1000;
+// Accepts: Gumroad keys (XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format)
+// OR manual LC- codes for testing
+function isValidLicense(code){
+  if(!code||code.length<8) return false;
+  // Gumroad format: 4 groups of 8 hex chars (e.g. 6F0E4C97-B72A4E69-A11BF6C4-AF6517E7)
+  const gumroad4x8 = /^[A-F0-9]{8}-[A-F0-9]{8}-[A-F0-9]{8}-[A-F0-9]{8}$/i;
+  // Standard UUID format fallback
+  const uuid = /^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$/i;
+  // Manual LC- codes for testing
+  const manual = /^LC-[A-Z0-9]{6,}$/i;
+  return gumroad4x8.test(code) || uuid.test(code) || manual.test(code);
+}
+
+// Obfuscated key names — harder to guess in DevTools
+const _K = {
+  start:    btoa('tl_s'),          // "dGxfcw=="
+  mirror:   btoa('tl_m'),          // cross-check copy
+  check:    btoa('tl_c'),          // checksum
+  license:  btoa('tl_k'),          // license key
+  session:  btoa('tl_ss'),         // sessionStorage mirror
+};
+
+// Simple non-reversible hash to detect tampering
+function _hash(val){
+  let h=0x811c9dc5;
+  for(let i=0;i<val.length;i++){h^=val.charCodeAt(i);h=(h*0x01000193)>>>0;}
+  return h.toString(36);
+}
+
+// Encode stored value so it's not a raw timestamp
+function _encode(ts){ return btoa(String(ts ^ 0xDEADBEEF)); }
+function _decode(v){
+  try{ return parseInt(atob(v)) ^ 0xDEADBEEF; }catch(e){ return 0; }
+}
+
+function _setStart(ts){
+  const enc=_encode(ts);
+  const chk=_hash(enc);
+  localStorage.setItem(_K.start,  enc);
+  localStorage.setItem(_K.mirror, _encode(ts + 1)); // slightly different so both must exist
+  localStorage.setItem(_K.check,  chk);
+  sessionStorage.setItem(_K.session, enc);           // sessionStorage clears on tab close
+}
+
+function _getStart(){
+  const enc    = localStorage.getItem(_K.start);
+  const mirror = localStorage.getItem(_K.mirror);
+  const chk    = localStorage.getItem(_K.check);
+  const sess   = sessionStorage.getItem(_K.session);
+
+  if(!enc||!mirror||!chk) return null; // missing = tampered
+
+  // Verify checksum
+  if(_hash(enc) !== chk) return null;
+
+  // Verify mirror consistency
+  const ts  = _decode(enc);
+  const ts2 = _decode(mirror);
+  if(ts2 !== ts + 1) return null;
+
+  // Cross-check with sessionStorage if present
+  if(sess && _decode(sess) !== ts) return null;
+
+  return ts;
+}
+
+function _setLicense(code){
+  const enc=_encode(code.split('').reduce((a,c)=>a+c.charCodeAt(0),0));
+  localStorage.setItem(_K.license, btoa(code));
+  localStorage.setItem(_K.license+'_v', enc); // validation shadow
+}
+
+function _getLicense(){
+  try{
+    const raw=localStorage.getItem(_K.license);
+    if(!raw) return null;
+    const code=atob(raw);
+    // Verify shadow
+    const shadow=localStorage.getItem(_K.license+'_v');
+    const expected=_encode(code.split('').reduce((a,c)=>a+c.charCodeAt(0),0));
+    if(shadow!==expected) return null;
+    return code;
+  }catch(e){return null;}
+}
+
+let trialInterval=null;
+let selectedPlan='lifetime';
+let isUnlocked=false;
+let _serverRemaining=null; // ms remaining from server
+let _localStart=null;      // local timestamp when server responded
+
+// ── FINGERPRINT ──────────────────────────────────────────
+async function getFingerprint(){
+  const cached=sessionStorage.getItem('_tlf');
+  if(cached) return cached;
+  const nav=window.navigator;
+  const parts=[
+    nav.language, nav.platform, nav.hardwareConcurrency,
+    screen.width, screen.height, screen.colorDepth,
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+    nav.userAgent.slice(0,80)
+  ];
+  const raw=parts.join('|');
+  // Simple hash
+  let h=0x811c9dc5;
+  for(let i=0;i<raw.length;i++){h^=raw.charCodeAt(i);h=(h*0x01000193)>>>0;}
+  const fp=h.toString(36)+'-'+raw.length.toString(36);
+  sessionStorage.setItem('_tlf',fp);
+  return fp;
+}
+
+// ── SERVER TRIAL ─────────────────────────────────────────
+async function initTrial(){
+  // 1. Check cached license in localStorage
+  const cachedLic=localStorage.getItem('_tlk');
+  if(cachedLic){
+    const fp=await getFingerprint();
+    const ok=await verifyLicenseServer(cachedLic,fp);
+    if(ok){isUnlocked=true;hideTrial();return;}
+    localStorage.removeItem('_tlk'); // invalid cached license
+  }
+
+  // 2. Get trial from server
+  try{
+    const fp=await getFingerprint();
+    const res=await fetch('/api/trial',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({fingerprint:fp})
+    });
+    if(res.ok){
+      const data=await res.json();
+      _serverRemaining=data.remaining;
+      _localStart=Date.now();
+    } else {
+      // Server error — fallback to full trial
+      _serverRemaining=TRIAL_DURATION;
+      _localStart=Date.now();
+    }
+  }catch(e){
+    // Offline or function not deployed — fallback to full trial
+    _serverRemaining=TRIAL_DURATION;
+    _localStart=Date.now();
+  }
+
+  trialInterval=setInterval(tickTrial,1000);
+  tickTrial();
+}
+
+function getTrialRemaining(){
+  if(_serverRemaining===null) return TRIAL_DURATION;
+  const elapsed=Date.now()-(_localStart||Date.now());
+  return Math.max(0, _serverRemaining-elapsed);
+}
+
+function tickTrial(){
+  const remaining=getTrialRemaining();
+  updateTrialBadge(remaining);
+  if(remaining<=0){
+    clearInterval(trialInterval);
+    openPaywall();
+  }
+}
+
+function updateTrialBadge(remaining){
+  if(isUnlocked){hideTrial();return;}
+  remaining=remaining!==undefined?remaining:getTrialRemaining();
+  const badge=document.getElementById('trialBadge');
+  const label=document.getElementById('trialLabel');
+  if(remaining<=0){
+    badge.className='trial-badge expired';
+    label.textContent=t('trialExpired');
+    return;
+  }
+  const h=Math.floor(remaining/3600000);
+  const m=Math.floor((remaining%3600000)/60000);
+  const s=Math.floor((remaining%60000)/1000);
+  const timeStr=h>0?`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${m}:${String(s).padStart(2,'0')}`;
+  label.textContent=timeStr+' '+t(remaining<600000?'trialWarning':'trialActive');
+  badge.className='trial-badge'+(remaining<600000?' warning':'');
+}
+
+function hideTrial(){
+  document.getElementById('trialBadge').style.display='none';
+}
+
+function openPaywall(){
+  updateCTAText();
+  const rem=getTrialRemaining();
+  document.getElementById('trialExtendBtn').style.display=rem>0?'flex':'none';
+  document.getElementById('paywallModal').classList.add('open');
+}
+function closePaywall(){
+  if(getTrialRemaining()>0)
+    document.getElementById('paywallModal').classList.remove('open');
+}
+
+function selectPlan(plan){
+  selectedPlan=plan;
+  document.getElementById('planMonthly').classList.toggle('featured',plan==='monthly');
+  document.getElementById('planLifetime').classList.toggle('featured',plan==='lifetime');
+  updateCTAText();
+}
+function updateCTAText(){
+  document.getElementById('ctaText').textContent=selectedPlan==='monthly'?t('ctaMonthly'):t('ctaLifetime');
+}
+function goToPay(){
+  window.open(GUMROAD[selectedPlan],'_blank');
+}
+
+// ── LICENSE VERIFICATION ──────────────────────────────────
+async function verifyLicenseServer(code, fp){
+  try{
+    const res=await fetch('/api/verify-license',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({license_key:code, fingerprint:fp})
+    });
+    if(!res.ok) return false;
+    const data=await res.json();
+    return data.valid===true;
+  }catch(e){return false;}
+}
+
+async function activateLicense(){
+  const code=document.getElementById('licenseInput').value.trim().toUpperCase();
+  if(!code){showToast(t('toastLicenseBad'));return;}
+
+  const btn=document.getElementById('activateBtn');
+  btn.textContent='⏳';btn.disabled=true;
+
+  const fp=await getFingerprint();
+  const valid=await verifyLicenseServer(code,fp);
+
+  btn.textContent=t('activate');btn.disabled=false;
+
+  if(valid){
+    localStorage.setItem('_tlk',code); // cache so next visit skips server check
+    isUnlocked=true;
+    clearInterval(trialInterval);
+    hideTrial();
+    document.getElementById('paywallModal').classList.remove('open');
+    showToast(t('toastLicenseOk'));
+  } else {
+    showToast(t('toastLicenseBad'));
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  SPEECH RECOGNITION
+// ═══════════════════════════════════════════════════════
+const GT_URL='https://translate.googleapis.com/translate_a/single';
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+
+let recognition=null,isRecording=false,autoDetect=true;
+let srcLang='es',transFromLang='es',transToLang='en';
+let captionBlocks=[],translateTimer=null,accumulatedCaption='';
+let glossaryOpen=false,interimSpan=null,glossSuggestTimer=null;
+let dropdownTarget=null;
+
+function langToCode(l){return{es:'es-MX',en:'en-US',fr:'fr-FR',pt:'pt-BR',de:'de-DE',it:'it-IT',ja:'ja-JP',ko:'ko-KR',zh:'zh-CN',ar:'ar-SA',ru:'ru-RU'}[l]||l;}
+
+function initRecognition(){
+  if(!SpeechRecognition){showToast('❌ Usa Chrome o Edge.');return;}
+  recognition=new SpeechRecognition();
+  recognition.continuous=true;recognition.interimResults=true;
+  recognition.lang=autoDetect?'':langToCode(srcLang);
+  recognition.onstart=()=>setStatus('listening',t('statusListening'));
+  recognition.onresult=(e)=>{
+    let interim='',final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const tx=e.results[i][0].transcript;
+      if(e.results[i].isFinal)final+=tx+' ';else interim+=tx;
+    }
+    updateInterimCaption(interim);
+    if(final.trim())commitCaption(final.trim());
+  };
+  recognition.onerror=(e)=>{if(e.error==='not-allowed'){showToast('❌ Micrófono denegado.');stopRecording();}};
+  recognition.onend=()=>{if(isRecording){try{recognition.start();}catch(e){}}else setStatus('ready',t('statusStopped'));};
+}
+
+function toggleRecording(){
+  if(!isUnlocked&&getTrialRemaining()<=0){openPaywall();return;}
+  isRecording?stopRecording():startRecording();
+}
+function startRecording(){
+  initRecognition();if(!recognition)return;
+  isRecording=true;
+  document.getElementById('placeholder').style.display='none';
+  const b=document.getElementById('recordBtn');b.classList.add('recording');b.textContent='⏹';
+  try{recognition.start();}catch(e){}
+}
+function stopRecording(){
+  isRecording=false;
+  const b=document.getElementById('recordBtn');b.classList.remove('recording');b.textContent='🎤';
+  if(recognition){try{recognition.stop();}catch(e){}}
+  setStatus('ready',t('statusStopped'));removeInterimCaption();
+}
+
+// ═══════════════════════════════════════════════════════
+//  CAPTIONS
+// ═══════════════════════════════════════════════════════
+function updateInterimCaption(text){
+  if(!text){removeInterimCaption();return;}
+  if(!interimSpan){interimSpan=document.createElement('span');interimSpan.className='caption-text interim';document.getElementById('captionsArea').appendChild(interimSpan);}
+  interimSpan.textContent=text;scrollCaptions();
+}
+function removeInterimCaption(){if(interimSpan){interimSpan.remove();interimSpan=null;}}
+function commitCaption(text){
+  removeInterimCaption();
+  const span=document.createElement('span');span.className='caption-text';span.textContent=text+' ';
+  document.getElementById('captionsArea').appendChild(span);
+  captionBlocks.push({text});scrollCaptions();
+}
+function scrollCaptions(){const el=document.getElementById('captionsArea');el.scrollTop=el.scrollHeight;}
+function clearCaptions(){
+  document.getElementById('captionsArea').innerHTML=`<div class="placeholder" id="placeholder"><div class="placeholder-icon">🎤</div><p id="placeholderText">${t('placeholderText')}</p></div>`;
+  captionBlocks=[];interimSpan=null;
+  if(isRecording)document.getElementById('placeholder').style.display='none';
+}
+function copyAllCaptions(){
+  const text=captionBlocks.map(b=>b.text).join(' ');
+  if(!text){showToast(t('toastNoCaption'));return;}
+  navigator.clipboard.writeText(text).then(()=>showToast(t('toastCopied')));
+}
+function sendCaptionsToTranslator(){
+  const text=captionBlocks.map(b=>b.text).join(' ').trim();
+  if(!text){showToast(t('toastNoCaption'));return;}
+  document.getElementById('transInput').value=text;accumulatedCaption=text;onTransInput();showToast(t('toastSent'));
+}
+
+// ═══════════════════════════════════════════════════════
+//  SOURCE LANG
+// ═══════════════════════════════════════════════════════
+function setSrcMode(mode){
+  autoDetect=(mode==='auto');
+  document.getElementById('srcAutoBtn').classList.toggle('active',autoDetect);
+  document.getElementById('srcLangBtn').classList.toggle('active',!autoDetect);
+  document.getElementById('autoDetectToggle').classList.toggle('on',autoDetect);
+  document.getElementById('autoDetectLabel').textContent=t('autoDetect');
+  if(isRecording)recognition.stop();
+}
+function toggleAutoDetect(){setSrcMode(autoDetect?'fixed':'auto');}
+function applySrcLang(code){
+  srcLang=code;const l=getLang(code);
+  document.getElementById('srcLangLabel').textContent=l.name;
+  setSrcMode('fixed');if(isRecording)recognition.stop();
+}
+
+// ═══════════════════════════════════════════════════════
+//  DROPDOWN
+// ═══════════════════════════════════════════════════════
+function openDropdown(target){
+  dropdownTarget=target;
+  const dd=document.getElementById('langDropdown');
+  document.getElementById('langDropdownSearch').value='';
+  renderDropdownList('');
+  let refEl;
+  if(target==='src')refEl=document.getElementById('srcLangBtn');
+  else if(target==='transFrom')refEl=document.getElementById('transFromTab');
+  else refEl=document.getElementById('transToTab');
+  const rect=refEl.getBoundingClientRect();
+  dd.style.top=(rect.bottom+6)+'px';
+  dd.style.left=Math.min(rect.left,window.innerWidth-290)+'px';
+  dd.classList.add('open');
+  setTimeout(()=>document.getElementById('langDropdownSearch').focus(),60);
+}
+function closeDropdown(){document.getElementById('langDropdown').classList.remove('open');dropdownTarget=null;}
+
+function renderDropdownList(filter){
+  const list=document.getElementById('langDropdownList');
+  const q=filter.toLowerCase();
+  let html='';
+  if(dropdownTarget==='src'||dropdownTarget==='transFrom'){
+    html+=`<div class="lang-dropdown-item lang-auto-item" onclick="selectDropdownLang('auto')"><span class="flag">🔍</span>${t('autoDetect')}</div>`;
+  }
+  LANGUAGES.filter(l=>!q||l.name.toLowerCase().includes(q)||l.code.toLowerCase().includes(q))
+    .forEach(l=>{
+      const sel=(dropdownTarget==='transTo'&&l.code===transToLang)||(dropdownTarget==='transFrom'&&l.code===transFromLang)||(dropdownTarget==='src'&&l.code===srcLang&&!autoDetect);
+      html+=`<div class="lang-dropdown-item${sel?' selected':''}" onclick="selectDropdownLang('${l.code}')"><span class="flag">${l.flag}</span>${l.name}</div>`;
+    });
+  list.innerHTML=html||`<div style="padding:12px 16px;font-size:13px;color:var(--text-muted);">No results</div>`;
+}
+function filterDropdown(q){renderDropdownList(q);}
+
+function selectDropdownLang(code){
+  if(dropdownTarget==='src'){code==='auto'?setSrcMode('auto'):applySrcLang(code);}
+  else if(dropdownTarget==='transFrom'){
+    transFromLang=code;updateTransLangBar();
+    const input=document.getElementById('transInput').value.trim();if(input)translateText(input);
+  } else {
+    transToLang=code;updateTransLangBar();
+    const input=document.getElementById('transInput').value.trim();if(input)translateText(input);
+  }
+  closeDropdown();
+}
+
+function updateTransLangBar(){
+  const from=transFromLang==='auto'?{name:t('autoDetect'),flag:'🔍',code:'auto'}:getLang(transFromLang);
+  const to=getLang(transToLang);
+  document.getElementById('transFromFlag').textContent=from.flag;
+  document.getElementById('transFromLabel').textContent=from.name;
+  document.getElementById('transToFlag').textContent=to.flag;
+  document.getElementById('transToLabel').textContent=to.name;
+  document.getElementById('inputLangLabel').textContent=from.name;
+  document.getElementById('outputLangLabel').textContent=to.name;
+  const ph={fr:'Écris ici pour traduire…',pt:'Escreve aqui para traduzir…',es:'Escribe aquí para traducir…'};
+  document.getElementById('transInput').placeholder=ph[transFromLang]||'Type here to translate…';
+}
+
+function swapTranslatorLangs(){
+  if(transFromLang==='auto')return;
+  const prev=document.getElementById('transOutput').textContent.trim();
+  const tmp=transFromLang;transFromLang=transToLang;transToLang=tmp;
+  updateTransLangBar();
+  if(prev){document.getElementById('transInput').value=prev;accumulatedCaption=prev;onTransInput();}
+}
+
+document.addEventListener('click',(e)=>{
+  const dd=document.getElementById('langDropdown');
+  if(!dd.contains(e.target)&&!e.target.closest('.lang-selector-side')&&!e.target.closest('.trans-lang-tab'))closeDropdown();
+  if(!e.target.closest('.gloss-search-wrap'))closeGlossSuggestions();
+});
+
+// ═══════════════════════════════════════════════════════
+//  TRANSLATOR
+// ═══════════════════════════════════════════════════════
+function onTransInput(){
+  const input=document.getElementById('transInput').value;
+  document.getElementById('charCount').textContent=`${input.length} / 5000`;
+  clearTimeout(translateTimer);
+  if(!input.trim()){document.getElementById('transOutput').textContent='';return;}
+  translateTimer=setTimeout(()=>translateText(input.trim()),400);
+}
+async function translateText(text){
+  if(!text)return;
+  const out=document.getElementById('transOutput');
+  out.className='trans-output loading';out.textContent='…';
+  const sl=transFromLang==='auto'?'auto':transFromLang;
+  const params=new URLSearchParams({client:'gtx',sl,tl:transToLang,dt:'t',q:text});
+  try{
+    const res=await fetch(`${GT_URL}?${params}`);if(!res.ok)throw new Error();
+    const data=await res.json();
+    const translated=data[0].map(s=>s[0]).filter(Boolean).join('');
+    const detLang=data[2]||transFromLang;
+    out.className='trans-output';out.textContent=translated;
+    out.setAttribute('data-placeholder','Translation will appear here...');
+    const badge=document.getElementById('detectedBadge');
+    badge.textContent=`🔍 ${getLang(detLang).name}`;badge.classList.add('visible');
+  }catch(e){
+    out.className='trans-output';out.textContent='';
+    out.setAttribute('data-placeholder','⚠️ Translation error. Check your connection.');
+  }
+}
+function clearTranslator(){
+  const out=document.getElementById('transOutput');
+  document.getElementById('transInput').value='';out.textContent='';
+  out.setAttribute('data-placeholder','Translation will appear here...');
+  document.getElementById('charCount').textContent='0 / 5000';
+  accumulatedCaption='';document.getElementById('detectedBadge').classList.remove('visible');
+}
+function copyInput(){const v=document.getElementById('transInput').value;if(v)navigator.clipboard.writeText(v).then(()=>showToast('✅ OK'));}
+function copyOutput(){const v=document.getElementById('transOutput').textContent;if(v)navigator.clipboard.writeText(v).then(()=>showToast('✅ OK'));}
+
+// ═══════════════════════════════════════════════════════
+//  GLOSSARY — multilingual with Wiktionary + Free Dict
+// ═══════════════════════════════════════════════════════
+// Maps detected lang codes to Wiktionary language names
+const WIKT_LANG={
+  es:'Spanish',en:'English',fr:'French',pt:'Portuguese',
+  de:'German',it:'Italian',ru:'Russian',ar:'Arabic',
+  zh:'Mandarin','zh-TW':'Mandarin',ja:'Japanese',ko:'Korean'
+};
+// Maps to Wiktionary subdomain
+const WIKT_SUBDOMAIN={es:'es',fr:'fr',pt:'pt',en:'en'};
+// Maps to Free Dictionary API supported langs
+const FREE_DICT_LANGS=['en','es'];
+
+function toggleGlossary(){
+  glossaryOpen=!glossaryOpen;
+  document.getElementById('glossaryPanel').classList.toggle('open',glossaryOpen);
+  if(glossaryOpen)setTimeout(()=>document.getElementById('glossaryInput').focus(),240);
+}
+
+async function onGlossaryInput(){
+  const term=document.getElementById('glossaryInput').value.trim();
+  clearTimeout(glossSuggestTimer);
+  if(term.length<2){closeGlossSuggestions();return;}
+  glossSuggestTimer=setTimeout(()=>fetchSuggestions(term),320);
+}
+async function fetchSuggestions(term){
+  try{
+    const [spellRes,relRes]=await Promise.all([
+      fetch(`https://api.datamuse.com/words?sp=${encodeURIComponent(term)}*&max=5`),
+      fetch(`https://api.datamuse.com/words?sl=${encodeURIComponent(term)}&max=3`)
+    ]);
+    const spell=await spellRes.json();
+    const rel=await relRes.json();
+    const current=document.getElementById('glossaryInput').value.trim().toLowerCase();
+    const suggestions=[...new Map([...spell,...rel].map(w=>[w.word,w])).values()]
+      .filter(w=>w.word.toLowerCase()!==current).slice(0,6);
+    const suggEl=document.getElementById('glossSuggestions');
+    if(!suggestions.length){closeGlossSuggestions();return;}
+    let html='';
+    if(spell.length&&spell[0].word.toLowerCase()!==current&&levenshtein(current,spell[0].word)>2){
+      html+=`<div class="gloss-did-you-mean">${t('didYouMean')} <span onclick="applyGlossSuggestion('${escapeHtml(spell[0].word)}')">${escapeHtml(spell[0].word)}</span>?</div>`;
+    }
+    suggestions.forEach(w=>{html+=`<div class="gloss-suggestion-item" onclick="applyGlossSuggestion('${escapeHtml(w.word)}')"><span class="sugg-icon">🔍</span>${escapeHtml(w.word)}</div>`;});
+    suggEl.innerHTML=html;suggEl.classList.add('open');
+  }catch(e){closeGlossSuggestions();}
+}
+function applyGlossSuggestion(word){document.getElementById('glossaryInput').value=word;closeGlossSuggestions();lookupTerm();}
+function closeGlossSuggestions(){document.getElementById('glossSuggestions').classList.remove('open');}
+function onGlossaryKey(e){if(e.key==='Enter'){closeGlossSuggestions();lookupTerm();}if(e.key==='Escape')closeGlossSuggestions();}
+
+function levenshtein(a,b){
+  const m=a.length,n=b.length;const dp=Array.from({length:m+1},(_,i)=>Array.from({length:n+1},(_,j)=>i===0?j:j===0?i:0));
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+async function lookupTerm(){
+  const term=document.getElementById('glossaryInput').value.trim();
+  if(!term)return;
+  closeGlossSuggestions();
+  const resultEl=document.getElementById('glossaryResult');
+  resultEl.innerHTML=`<p class="gloss-loading">🔍 "${escapeHtml(term)}"…</p>`;
+
+  try{
+    // 1. Detect language
+    const detectParams=new URLSearchParams({client:'gtx',sl:'auto',tl:'en',dt:'t',q:term});
+    const detectRes=await fetch(`${GT_URL}?${detectParams}`);
+    const detectData=await detectRes.json();
+    const detectedLang=detectData[2]||'en';
+    const termInEnglish=detectedLang!=='en'?detectData[0].map(s=>s[0]).filter(Boolean).join('').trim():term;
+
+    let html=`<div class="gloss-term">${escapeHtml(term)}</div>`;
+    let definitionFound=false;
+
+    // 2. MediaWiki API — CORS-friendly, works for es/fr/pt/en
+    // Uses the Wiktionary of the detected language to get definitions in that language
+    const wiktSubdomain=WIKT_SUBDOMAIN[detectedLang]||'en';
+    try{
+      const mwUrl=`https://${wiktSubdomain}.wiktionary.org/w/api.php?action=query&titles=${encodeURIComponent(term)}&prop=extracts&exintro=1&explaintext=1&format=json&origin=*`;
+      const mwRes=await fetch(mwUrl);
+      if(mwRes.ok){
+        const mwData=await mwRes.json();
+        const pages=mwData.query?.pages||{};
+        const page=Object.values(pages)[0];
+        if(page&&page.extract&&!page.missing){
+          // Parse the plain-text extract into sections
+          const extract=page.extract.trim();
+          // Split by line and filter out empty lines and section headers starting with ==
+          const lines=extract.split('\n').filter(l=>l.trim()&&!l.startsWith('=='));
+          // Take up to 6 meaningful lines
+          const meaningful=lines.slice(0,6);
+          if(meaningful.length){
+            definitionFound=true;
+            // Try to detect part-of-speech headers (lines with just a word like "Sustantivo", "Verbo"…)
+            const posWords={
+              es:['sustantivo','verbo','adjetivo','adverbio','preposición','conjunción','interjección','pronombre','artículo'],
+              fr:['nom','verbe','adjectif','adverbe','préposition','conjonction'],
+              pt:['substantivo','verbo','adjetivo','advérbio','preposição'],
+              en:['noun','verb','adjective','adverb','preposition','conjunction','pronoun']
+            }[detectedLang]||[];
+
+            let currentPos='';
+            let blockOpen=false;
+            meaningful.forEach(line=>{
+              const lower=line.toLowerCase().trim();
+              const isPos=posWords.some(p=>lower===p||lower.startsWith(p+' '));
+              if(isPos){
+                if(blockOpen)html+=`</div>`;
+                html+=`<div class="gloss-block"><span class="gloss-pos">${escapeHtml(line.trim())}</span>`;
+                blockOpen=true;
+              } else {
+                if(!blockOpen){html+=`<div class="gloss-block">`;blockOpen=true;}
+                html+=`<p class="gloss-definition">${escapeHtml(line.trim())}</p>`;
+              }
+            });
+            if(blockOpen)html+=`</div>`;
+          }
+        }
+      }
+    }catch(e){/* MediaWiki unavailable */}
+
+    // 3. Fallback: Free Dictionary API (good for English, basic Spanish)
+    if(!definitionFound){
+      const dictLang=FREE_DICT_LANGS.includes(detectedLang)?detectedLang:'en';
+      const dictTerm=dictLang==='en'?termInEnglish:term;
+      try{
+        const dictRes=await fetch(`https://api.dictionaryapi.dev/api/v2/entries/${dictLang}/${encodeURIComponent(dictTerm)}`);
+        if(dictRes.ok){
+          const dictData=await dictRes.json();
+          const entry=dictData[0];
+          const phonetic=entry.phonetics?.find(p=>p.text)?.text||'';
+          if(phonetic)html+=`<div class="gloss-phonetic">${escapeHtml(phonetic)}</div>`;
+          const meanings=entry.meanings?.slice(0,3)||[];
+          meanings.forEach((meaning,mi)=>{
+            html+=`<div class="gloss-block"><span class="gloss-pos">${escapeHtml(meaning.partOfSpeech)}</span>`;
+            meaning.definitions?.slice(0,2).forEach(def=>{
+              html+=`<p class="gloss-definition">${escapeHtml(def.definition)}</p>`;
+              if(def.example)html+=`<p class="gloss-example">"${escapeHtml(def.example)}"</p>`;
+            });
+            html+=`</div>`;
+            if(mi<meanings.length-1)html+=`<hr class="gloss-divider">`;
+          });
+          definitionFound=true;
+        }
+      }catch(e){}
+    }
+
+    if(!definitionFound){
+      html+=`<p style="font-size:13px;color:var(--text-muted);margin:8px 0 12px;">${t('definitionNotFound')}</p>`;
+    }
+
+    // 4. Translations to es, en, fr, pt (excluding detected)
+    const transLangs=[
+      {code:'es',name:'Español',flag:'🇲🇽'},
+      {code:'en',name:'English',flag:'🇺🇸'},
+      {code:'fr',name:'Français',flag:'🇫🇷'},
+      {code:'pt',name:'Português',flag:'🇧🇷'}
+    ].filter(l=>l.code!==detectedLang);
+
+    html+=`<hr class="gloss-divider"><div class="gloss-section-label">${t('translationsLabel')}</div>`;
+    for(const lang of transLangs){
+      const p=new URLSearchParams({client:'gtx',sl:'auto',tl:lang.code,dt:'t',q:term});
+      const r=await fetch(`${GT_URL}?${p}`);
+      const d=await r.json();
+      const translated=d[0].map(s=>s[0]).filter(Boolean).join('').trim();
+      html+=`<div class="gloss-translation-box">
+        <div class="gloss-translation-label">${lang.flag} ${lang.name}</div>
+        <div class="gloss-translation-text">${escapeHtml(translated)}</div>
+      </div>`;
+    }
+
+    resultEl.innerHTML=html;
+  }catch(err){
+    resultEl.innerHTML=`<p class="gloss-error">⚠️ Error looking up term. Check your connection.</p>`;
+    console.error(err);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════
+function setStatus(state,text){
+  document.getElementById('statusDot').className='status-dot '+state;
+  document.getElementById('statusText').textContent=text;
+}
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+function escapeHtml(text){
+  return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+window.onload=()=>{
+  setStatus('ready',t('statusReady'));
+  updateTransLangBar();
+  initTrial();
+};
+</script>
+</body>
+</html>
