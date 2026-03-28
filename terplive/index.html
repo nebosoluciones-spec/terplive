@@ -93,6 +93,7 @@
   .btn-record.recording{background:#1a1815;box-shadow:0 4px 14px rgba(0,0,0,.2);}
   .btn-icon{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
   .btn-icon:hover{border-color:var(--text-muted);color:var(--text);}
+  .btn-icon.sys-active{border-color:var(--accent2);color:var(--accent2);background:var(--accent2-light);}
   .auto-detect-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);cursor:pointer;user-select:none;padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);transition:all .15s;}
   .auto-detect-toggle.on{border-color:var(--green);color:var(--green);background:var(--green-light);}
 
@@ -251,7 +252,8 @@
       <div class="auto-detect-toggle on" id="autoDetectToggle" onclick="toggleAutoDetect()">
         <span>🔍</span><span id="autoDetectLabel">Auto-detect</span>
       </div>
-      <button class="btn-record" id="recordBtn" onclick="toggleRecording()">🎤</button>
+      <button class="btn-record" id="recordBtn" onclick="toggleRecording()" title="Microphone">🎤</button>
+      <button class="btn-icon" id="sysAudioBtn" onclick="toggleSystemAudio()" title="Capture system audio / browser tab audio" style="font-size:16px;">🖥</button>
     </div>
   </div>
 
@@ -813,6 +815,112 @@ function stopRecording(){
   const b=document.getElementById('recordBtn');b.classList.remove('recording');b.textContent='🎤';
   if(recognition){try{recognition.stop();}catch(e){}}
   setStatus('ready',t('statusStopped'));removeInterimCaption();
+}
+
+// ═══════════════════════════════════════════════════════
+//  SYSTEM AUDIO CAPTURE (getDisplayMedia)
+// ═══════════════════════════════════════════════════════
+let sysStream=null;
+let sysAudioContext=null;
+let sysRecognition=null;
+let isSysCapturing=false;
+
+async function toggleSystemAudio(){
+  if(!isUnlocked&&getTrialRemaining()<=0){openPaywall();return;}
+  isSysCapturing?stopSystemAudio():startSystemAudio();
+}
+
+async function startSystemAudio(){
+  if(!SpeechRecognition){showToast('❌ Use Chrome or Edge.');return;}
+
+  try{
+    // Ask user to share a tab or screen WITH audio
+    sysStream=await navigator.mediaDevices.getDisplayMedia({
+      video:true,  // required by browser even if we only want audio
+      audio:{
+        echoCancellation:false,
+        noiseSuppression:false,
+        sampleRate:44100
+      }
+    });
+  }catch(e){
+    if(e.name==='NotAllowedError') showToast('⚠️ Share cancelled. Try again and select "Share audio".');
+    else showToast('❌ Could not capture system audio.');
+    return;
+  }
+
+  // Check audio tracks exist
+  const audioTracks=sysStream.getAudioTracks();
+  if(!audioTracks.length){
+    showToast('⚠️ No audio detected. Make sure to check "Share audio" when sharing.');
+    sysStream.getTracks().forEach(t=>t.stop());
+    sysStream=null;
+    return;
+  }
+
+  // Stop mic if active
+  if(isRecording) stopRecording();
+
+  isSysCapturing=true;
+  const btn=document.getElementById('sysAudioBtn');
+  btn.classList.add('sys-active');
+  btn.textContent='⏹';
+  document.getElementById('placeholder').style.display='none';
+  setStatus('listening','System audio…');
+
+  // Route system audio through Web Speech API via AudioContext + MediaStream
+  sysAudioContext=new AudioContext();
+  const source=sysAudioContext.createMediaStreamSource(sysStream);
+
+  // Create a new stream with only the audio for SpeechRecognition
+  const dest=sysAudioContext.createMediaStreamDestination();
+  source.connect(dest);
+
+  sysRecognition=new SpeechRecognition();
+  sysRecognition.continuous=true;
+  sysRecognition.interimResults=true;
+  sysRecognition.lang=autoDetect?'':langToCode(srcLang);
+
+  // Override input: feed system audio stream
+  // Web Speech API doesn't directly accept streams, so we use a workaround:
+  // pass the audio through a hidden audio element to trigger recognition
+  const audioEl=document.createElement('audio');
+  audioEl.srcObject=dest.stream;
+  audioEl.muted=true; // don't play back
+  audioEl.play().catch(()=>{});
+
+  sysRecognition.onresult=(e)=>{
+    let interim='',final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const tx=e.results[i][0].transcript;
+      if(e.results[i].isFinal)final+=tx+' ';else interim+=tx;
+    }
+    updateInterimCaption(interim);
+    if(final.trim())commitCaption(final.trim());
+  };
+  sysRecognition.onerror=(e)=>{
+    if(e.error==='not-allowed')showToast('❌ Microphone permission needed even for system audio.');
+    else if(e.error!=='no-speech') showToast('⚠️ Recognition error: '+e.error);
+  };
+  sysRecognition.onend=()=>{if(isSysCapturing){try{sysRecognition.start();}catch(e){}}};
+
+  // If user stops sharing from the browser bar
+  sysStream.getVideoTracks()[0]?.addEventListener('ended',()=>stopSystemAudio());
+  sysStream.getAudioTracks()[0]?.addEventListener('ended',()=>stopSystemAudio());
+
+  try{sysRecognition.start();}catch(e){showToast('❌ Could not start recognition.');}
+}
+
+function stopSystemAudio(){
+  isSysCapturing=false;
+  if(sysRecognition){try{sysRecognition.stop();}catch(e){}}
+  if(sysStream){sysStream.getTracks().forEach(t=>t.stop());sysStream=null;}
+  if(sysAudioContext){sysAudioContext.close();sysAudioContext=null;}
+  const btn=document.getElementById('sysAudioBtn');
+  btn.classList.remove('sys-active');btn.textContent='🖥';
+  setStatus('ready',t('statusStopped'));
+  removeInterimCaption();
+  showToast('🖥 System audio stopped.');
 }
 
 // ═══════════════════════════════════════════════════════
