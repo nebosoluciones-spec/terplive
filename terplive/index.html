@@ -87,7 +87,6 @@
   .placeholder p{font-size:14px;max-width:220px;line-height:1.5;}
 
   /* ── CONTROLS ── */
-  .controls{padding:14px 20px 18px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:12px;flex-shrink:0;}
   .btn-record{width:52px;height:52px;border-radius:50%;border:none;background:var(--accent);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 14px rgba(232,83,58,.35);}
   .btn-record:hover{transform:scale(1.05);}
   .btn-record.recording{background:#1a1815;box-shadow:0 4px 14px rgba(0,0,0,.2);}
@@ -191,6 +190,9 @@
   .modal-unlock button{padding:9px 16px;border-radius:var(--radius-sm);border:none;background:var(--purple);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
   .modal-unlock-label{font-size:11px;color:var(--text-muted);text-align:center;margin-top:8px;}
 
+  /* ── KBD SHORTCUT BADGES ── */
+  kbd{display:inline-flex;align-items:center;padding:1px 6px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);font-family:'DM Mono',monospace;font-size:10px;font-weight:600;color:var(--text);box-shadow:0 1px 0 var(--border);white-space:nowrap;}
+
   /* ── HELP FAB ── */
   .help-fab{position:fixed;bottom:82px;right:24px;width:36px;height:36px;border-radius:50%;border:none;background:var(--surface);border:1px solid var(--border);color:var(--text-muted);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);transition:all .15s;z-index:200;}
   .help-fab:hover{border-color:var(--accent);color:var(--accent);}
@@ -245,9 +247,14 @@
     <div class="panel-header">
       <span class="panel-title" data-i18n="liveCaption">Live Captions</span>
       <div class="panel-actions">
-        <button class="btn-icon" onclick="copyAllCaptions()" id="btnCopy" title="Copiar subtítulos">📋</button>
-        <button class="btn-icon" onclick="sendCaptionsToTranslator()" title="Enviar al traductor" style="font-size:17px;font-weight:700;">→</button>
-        <button class="btn-icon" onclick="clearCaptions()" title="Limpiar">🗑</button>
+        <div class="auto-detect-toggle on" id="autoDetectToggle" onclick="toggleAutoDetect()" style="height:28px;padding:4px 8px;">
+          <span style="font-size:12px;">🔍</span><span id="autoDetectLabel" style="font-size:11px;">Auto</span>
+        </div>
+        <button class="btn-record" id="recordBtn" onclick="toggleRecording()" title="Microphone" style="width:32px;height:32px;font-size:15px;box-shadow:none;">🎤</button>
+        <div style="width:1px;height:20px;background:var(--border);margin:0 2px;"></div>
+        <button class="btn-icon" onclick="copyAllCaptions()" title="Copy captions" style="width:28px;height:28px;font-size:13px;">📋</button>
+        <button class="btn-icon" onclick="sendCaptionsToTranslator()" title="Send to translator (F2)" style="width:28px;height:28px;font-size:15px;font-weight:700;">→</button>
+        <button class="btn-icon" onclick="clearCaptions()" title="Clear captions (F1)" style="width:28px;height:28px;font-size:13px;">🗑</button>
       </div>
     </div>
     <div class="captions-area" id="captionsArea">
@@ -256,19 +263,16 @@
         <p id="placeholderText">Press the microphone to start transcribing</p>
       </div>
     </div>
-    <div class="controls">
-      <div class="auto-detect-toggle on" id="autoDetectToggle" onclick="toggleAutoDetect()">
-        <span>🔍</span><span id="autoDetectLabel">Auto-detect</span>
-      </div>
-      <button class="btn-record" id="recordBtn" onclick="toggleRecording()" title="Microphone">🎤</button>
-    </div>
   </div>
 
   <!-- RIGHT: TRANSLATOR -->
   <div class="panel translator-panel">
     <div class="panel-header">
       <span class="panel-title" data-i18n="translator">Translator</span>
-      <span style="font-size:11px;color:var(--text-muted)" data-i18n="autoTranslation">Automatic translation</span>
+      <div class="panel-actions" style="gap:4px;">
+        <button class="btn-icon" onclick="clearTranslator()" title="Clear translator (F3)" style="width:28px;height:28px;font-size:13px;">🗑</button>
+        <button class="btn-icon" onclick="copyOutput()" title="Copy translation" style="width:28px;height:28px;font-size:13px;">📋</button>
+      </div>
     </div>
     <div class="trans-lang-bar">
       <button class="trans-lang-tab active" id="transFromTab" onclick="openDropdown('transFrom')">
@@ -287,18 +291,11 @@
       <div class="half">
         <span class="half-label" id="inputLangLabel">Español</span>
         <textarea class="trans-textarea" id="transInput" placeholder="Type here to translate…" oninput="onTransInput()"></textarea>
-        <div class="trans-actions">
-          <button class="trans-action-btn" onclick="clearTranslator()">✕</button>
-          <button class="trans-action-btn" onclick="copyInput()">📋</button>
-        </div>
         <div class="char-count" id="charCount">0 / 5000</div>
       </div>
       <div class="half">
         <span class="half-label" id="outputLangLabel">English</span>
         <div class="trans-output" id="transOutput" data-placeholder="Translation will appear here..."></div>
-        <div class="trans-actions">
-          <button class="trans-action-btn" onclick="copyOutput()">📋</button>
-        </div>
       </div>
     </div>
   </div>
@@ -443,8 +440,20 @@
   </div>
 </div>
 
-<footer style="flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);padding:7px 24px;display:flex;align-items:center;justify-content:center;">
-  <span style="font-size:11px;color:var(--text-muted);">© 2026 <strong style="color:var(--text);">Nebo Soluciones</strong>. All rights reserved.</span>
+<footer style="flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);padding:6px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+    <span style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);margin-right:4px;">Shortcuts</span>
+    <kbd>F1</kbd><span style="font-size:11px;color:var(--text-muted);">Clear captions</span>
+    <div style="width:1px;height:12px;background:var(--border);"></div>
+    <kbd>F2</kbd><span style="font-size:11px;color:var(--text-muted);">Send to translator</span>
+    <div style="width:1px;height:12px;background:var(--border);"></div>
+    <kbd>F3</kbd><span style="font-size:11px;color:var(--text-muted);">Clear translator</span>
+    <div style="width:1px;height:12px;background:var(--border);"></div>
+    <kbd>Shift</kbd><span style="font-size:11px;color:var(--text-muted);">Swap languages</span>
+    <div style="width:1px;height:12px;background:var(--border);"></div>
+    <kbd>Ctrl M</kbd><span style="font-size:11px;color:var(--text-muted);">Mic on/off</span>
+  </div>
+  <span style="font-size:11px;color:var(--text-muted);flex-shrink:0;">© 2026 <strong style="color:var(--text);">Nebo Soluciones</strong></span>
 </footer>
 
 <div class="toast" id="toast"></div>
@@ -1258,6 +1267,23 @@ window.onload=()=>{
   setStatus('ready',t('statusReady'));
   updateTransLangBar();
   initTrial();
+
+  // ── KEYBOARD SHORTCUTS ──
+  document.addEventListener('keydown',(e)=>{
+    const tag=document.activeElement.tagName;
+    const isTyping=tag==='INPUT'||tag==='TEXTAREA';
+
+    // F1 → clear captions
+    if(e.key==='F1'){e.preventDefault();clearCaptions();}
+    // F2 → send captions to translator
+    if(e.key==='F2'){e.preventDefault();sendCaptionsToTranslator();}
+    // F3 → clear translator
+    if(e.key==='F3'){e.preventDefault();clearTranslator();}
+    // Shift alone → swap translator languages
+    if(e.key==='Shift'&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&!isTyping){swapTranslatorLangs();}
+    // Ctrl+M → toggle microphone
+    if(e.key==='m'&&(e.ctrlKey||e.metaKey)&&!isTyping){e.preventDefault();toggleRecording();}
+  });
 };
 </script>
 </body>
