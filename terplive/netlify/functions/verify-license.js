@@ -2,8 +2,8 @@
 const SUPABASE_URL = 'https://vtljsmizxchnbgduojqz.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0bGpzbWl6eGNobmJnZHVvanF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2NzA1OTcsImV4cCI6MjA5MDI0NjU5N30.lUK71hrRC8UpAoJ-1wD-tQ8J0e66NtRzewsyYRg7cuY';
 
-// Your Gumroad product permalinks — both plans under same product
-const GUMROAD_PRODUCTS = ['terplive'];
+// Your Gumroad product ID (found in Content → License Key section)
+const GUMROAD_PRODUCT_ID = 'T4yKpzpEr3az0M4Jm1_3IA==';
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -28,12 +28,12 @@ async function supabaseQuery(path, method='GET', body=null){
   catch(e) { return { ok: res.ok, status: res.status, data: text }; }
 }
 
-async function verifyWithGumroad(licenseKey, productPermalink){
+async function verifyWithGumroad(licenseKey){
   const res = await fetch('https://api.gumroad.com/v2/licenses/verify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      product_permalink: productPermalink,
+      product_id: GUMROAD_PRODUCT_ID,
       license_key: licenseKey,
       increment_uses_count: 'false'
     })
@@ -64,17 +64,9 @@ exports.handler = async (event) => {
       return { statusCode:200, headers, body: JSON.stringify({ valid: true, source: 'db' }) };
     }
 
-    // 2. Verify with Gumroad against all products
-    let gumroadValid = false;
-    for(const permalink of GUMROAD_PRODUCTS){
-      const result = await verifyWithGumroad(license_key, permalink);
-      if(result.success){
-        gumroadValid = true;
-        break;
-      }
-    }
-
-    if(!gumroadValid){
+    // 2. Verify with Gumroad using product_id
+    const result = await verifyWithGumroad(license_key);
+    if(!result.success){
       return { statusCode:200, headers, body: JSON.stringify({ valid: false, error: 'License not found in Gumroad' }) };
     }
 
