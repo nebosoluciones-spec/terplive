@@ -2,8 +2,8 @@
 const SUPABASE_URL = 'https://vtljsmizxchnbgduojqz.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0bGpzbWl6eGNobmJnZHVvanF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2NzA1OTcsImV4cCI6MjA5MDI0NjU5N30.lUK71hrRC8UpAoJ-1wD-tQ8J0e66NtRzewsyYRg7cuY';
 
-// Your Gumroad product permalinks — add both monthly and yearly
-const GUMROAD_PRODUCTS = ['terplive', 'terplive-yearly']; // update if needed
+// Your Gumroad product permalinks — both plans under same product
+const GUMROAD_PRODUCTS = ['terplive'];
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
