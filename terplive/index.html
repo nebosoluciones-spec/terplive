@@ -280,7 +280,7 @@
         <span id="transFromLabel">Español</span>
         <small style="color:var(--text-muted);font-size:11px;">▾</small>
       </button>
-      <button class="trans-swap-btn" onclick="swapTranslatorLangs()">⇄</button>
+      <button class="trans-swap-btn" onclick="swapTranslatorLangs()" title="Swap languages (F4)">⇄</button>
       <button class="trans-lang-tab" id="transToTab" onclick="openDropdown('transTo')">
         <span id="transToFlag">🇺🇸</span>
         <span id="transToLabel">English</span>
@@ -449,7 +449,7 @@
     <div style="width:1px;height:12px;background:var(--border);"></div>
     <kbd>F3</kbd><span style="font-size:11px;color:var(--text-muted);">Clear translator</span>
     <div style="width:1px;height:12px;background:var(--border);"></div>
-    <kbd>Shift</kbd><span style="font-size:11px;color:var(--text-muted);">Swap languages</span>
+    <kbd>F4</kbd><span style="font-size:11px;color:var(--text-muted);">Swap languages</span>
     <div style="width:1px;height:12px;background:var(--border);"></div>
     <kbd>Ctrl M</kbd><span style="font-size:11px;color:var(--text-muted);">Mic on/off</span>
   </div>
@@ -1279,8 +1279,8 @@ window.onload=()=>{
     if(e.key==='F2'){e.preventDefault();sendCaptionsToTranslator();}
     // F3 → clear translator
     if(e.key==='F3'){e.preventDefault();clearTranslator();}
-    // Shift alone → swap translator languages
-    if(e.key==='Shift'&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&!isTyping){swapTranslatorLangs();}
+    // F4 → swap translator languages
+    if(e.key==='F4'){e.preventDefault();swapTranslatorLangs();}
     // Ctrl+M → toggle microphone
     if(e.key==='m'&&(e.ctrlKey||e.metaKey)&&!isTyping){e.preventDefault();toggleRecording();}
   });
